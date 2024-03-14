@@ -514,7 +514,6 @@ extension RouterViewInternal {
         // .push, .sheet, .push, .push, .push, .sheet, .push
         
         var screensToDismiss: [AnyRoute] = []
-        var didFindCurrentScreen: Bool = false
         var newRootScreen: AnyRoute? = currentRouteArray.first
         
         // Find all screens on current stack that are ahead of current screen that are .push & isPresented
@@ -523,26 +522,15 @@ extension RouterViewInternal {
                 screensToDismiss.append(route)
             }
             
-            if route.id == self.route.id {
-                didFindCurrentScreen = true
-            }
-            
             // Stop when you find a sheet/fullScreenCover
             if route.segue != .push {
-                
-                // newRootScreen is the first screen before currentScreen that is not .push
-                if didFindCurrentScreen {
-                    newRootScreen = route
-                    break
-                    
-                // push must be on a lower stack, reset screensToDismiss
-                } else {
-                    screensToDismiss = []
-                }
+                // newRootScreen is the first screen that is not .push
+                newRootScreen = route
+                break
             }
         }
         
-        guard didFindCurrentScreen, newRootScreen != nil else {
+        guard newRootScreen != nil else {
             #if DEBUG
             print(printPrefix + "Failed to dismiss screens screenStack. Could not find user's active screens.")
             #endif
@@ -555,7 +543,10 @@ extension RouterViewInternal {
         }
         
         // Remove routes (not needed?)
-        //removeRoutingFlowsAfterRoute(newRootScreen)
+        if let newRootScreen {
+            removeRoutingFlowsAfterRoute(newRootScreen)
+            updateRouteIsPresented(route: newRootScreen, isPresented: true)
+        }
 
         // Reset screens to match NavigationStack path
         screens = []
